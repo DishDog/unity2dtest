@@ -7,7 +7,8 @@ public class RubyController : MonoBehaviour
     // ========= MOVEMENT =================
     public float speed = 4;
     public InputAction moveAction;
-    
+     private Vector3 targetPosition;
+    private bool isMoving = false;
     // ======== HEALTH ==========
     public int maxHealth = 5;
     public float timeInvincible = 2.0f;
@@ -48,7 +49,7 @@ public class RubyController : MonoBehaviour
     AudioSource audioSource;
     
     void Start()
-    {
+    {targetPosition = transform.position;
         // =========== MOVEMENT ==============
         rigidbody2d = GetComponent<Rigidbody2D>();
         moveAction.Enable();        
@@ -91,12 +92,32 @@ public class RubyController : MonoBehaviour
 
         currentInput = move;
 
+ if (Input.GetMouseButtonDown(0))
+        {
+            // 将鼠标点击的屏幕坐标转换为世界坐标
+            Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorldPosition.z = 0; // 确保Z轴为0，因为我们是在2D平面上
+            targetPosition = mouseWorldPosition;
+            isMoving = true;
 
+        }
+ 
+        // 如果正在移动，则向目标位置移动
+        if (isMoving)
+        {
+            transform.position = Vector2.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
+            
+            // 检查是否到达目标位置
+            if (Vector2.Distance(transform.position, targetPosition) < 0.1f)
+            {
+                isMoving = false;
+            }
+        }
         // ============== ANIMATION =======================
 
-        animator.SetFloat("Look X", lookDirection.x);
-        animator.SetFloat("Look Y", lookDirection.y);
-        animator.SetFloat("Speed", move.magnitude);
+       animator.SetFloat("Look X", lookDirection.x);
+       animator.SetFloat("Look Y", lookDirection.y);
+       animator.SetFloat("Speed", move.magnitude);
 
         // ======== DIALOGUE ==========
         if (dialogAction.WasPressedThisFrame())
@@ -111,7 +132,8 @@ public class RubyController : MonoBehaviour
                 }  
             }
         }
- 
+		
+		
     }
 
     void FixedUpdate()
