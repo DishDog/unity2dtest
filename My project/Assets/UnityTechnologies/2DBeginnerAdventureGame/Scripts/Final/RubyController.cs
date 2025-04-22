@@ -9,6 +9,7 @@ public class RubyController : MonoBehaviour
     public InputAction moveAction;
      private Vector3 targetPosition;
     private bool isMoving = false;
+	private Vector2 move;
     // ======== HEALTH ==========
     public int maxHealth = 5;
     public float timeInvincible = 2.0f;
@@ -82,42 +83,11 @@ public class RubyController : MonoBehaviour
         }
 
         // ============== MOVEMENT ======================
-        Vector2 move = moveAction.ReadValue<Vector2>();
-        
-        if(!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
-        {
-            lookDirection.Set(move.x, move.y);
-            lookDirection.Normalize();
-        }
 
-        currentInput = move;
-
- if (Input.GetMouseButtonDown(0))
-        {
-            // 将鼠标点击的屏幕坐标转换为世界坐标
-            Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-            mouseWorldPosition.z = 0; // 确保Z轴为0，因为我们是在2D平面上
-            targetPosition = mouseWorldPosition;
-            isMoving = true;
-
-        }
- 
-        // 如果正在移动，则向目标位置移动
-        if (isMoving)
-        {
-            transform.position = Vector2.MoveTowards(transform.position, targetPosition, speed * Time.deltaTime);
-            
-            // 检查是否到达目标位置
-            if (Vector2.Distance(transform.position, targetPosition) < 0.1f)
-            {
-                isMoving = false;
-            }
-        }
         // ============== ANIMATION =======================
 
-       animator.SetFloat("Look X", lookDirection.x);
-       animator.SetFloat("Look Y", lookDirection.y);
-       animator.SetFloat("Speed", move.magnitude);
+        HandleMovementInput();
+        UpdateAnimatorParameters();
 
         // ======== DIALOGUE ==========
         if (dialogAction.WasPressedThisFrame())
@@ -195,5 +165,69 @@ Debug.Log(currentHealth + "/" + maxHealth);
     public void PlaySound(AudioClip clip)
     {
         audioSource.PlayOneShot(clip);
+    }
+	    void HandleMovementInput()
+    {
+        // Handle mouse click for target position
+        if (Input.GetMouseButtonDown(0))
+        {
+            Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mouseWorldPosition.z = 0; // Assuming 2D game with z = 0
+            targetPosition = mouseWorldPosition;
+            isMoving = true;
+        }
+ 
+        // Calculate movement based on target position
+        if (isMoving)
+        {
+            move = (targetPosition - transform.position).normalized;
+            transform.position = Vector2.MoveTowards((Vector2)transform.position, targetPosition, speed * Time.deltaTime);
+ 
+            // Check if we have reached the target position
+            if (Vector2.Distance((Vector2)transform.position, targetPosition) < 0.1f)
+            {
+                isMoving = false;
+                move = Vector2.zero; // Reset move direction when not moving
+            }
+        }
+        else
+        {
+            // Optionally handle keyboard input when not moving via mouse click
+            float horizontal = Input.GetAxis("Horizontal");
+            float vertical = Input.GetAxis("Vertical");
+            move = new Vector2(horizontal, vertical);
+ 
+            if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
+            {
+                isMoving = true; // Allow movement via keyboard if input is detected
+                lookDirection.Set(move.x, move.y);
+                lookDirection.Normalize();
+            }
+            else
+            {
+                // If no input, ensure isMoving is false to stop any residual movement logic
+                isMoving = false;
+            }
+        }
+ 
+        // If moving via keyboard, update lookDirection
+        if (!isMoving || (isMoving && move.magnitude > 0.01f)) // Ensure lookDirection updates only when there's intentional movement
+        {
+            if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
+            {
+                lookDirection.Set(move.x, move.y);
+                lookDirection.Normalize();
+            }
+        }
+    }
+ 
+    void UpdateAnimatorParameters()
+    {
+        // Set Look X and Look Y based on lookDirection
+        animator.SetFloat("Look X", lookDirection.x);
+        animator.SetFloat("Look Y", lookDirection.y);
+ 
+        // Set Speed based on movement magnitude
+        animator.SetFloat("Speed", move.magnitude);
     }
 }
