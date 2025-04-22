@@ -8,7 +8,7 @@ public class RubyController : MonoBehaviour
     public float speed = 4;
     public InputAction moveAction;
      private Vector3 targetPosition;
-    private bool isMoving = false;
+   private bool isMovingToTarget = false;
 	private Vector2 move;
     // ======== HEALTH ==========
     public int maxHealth = 5;
@@ -166,7 +166,13 @@ Debug.Log(currentHealth + "/" + maxHealth);
     {
         audioSource.PlayOneShot(clip);
     }
-	    void HandleMovementInput()
+
+
+
+
+
+
+  void HandleMovementInput()
     {
         // Handle mouse click for target position
         if (Input.GetMouseButtonDown(0))
@@ -174,11 +180,11 @@ Debug.Log(currentHealth + "/" + maxHealth);
             Vector3 mouseWorldPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
             mouseWorldPosition.z = 0; // Assuming 2D game with z = 0
             targetPosition = mouseWorldPosition;
-            isMoving = true;
+            isMovingToTarget = true;
         }
  
-        // Calculate movement based on target position
-        if (isMoving)
+        // If moving to a target position, move towards it
+        if (isMovingToTarget)
         {
             move = (targetPosition - transform.position).normalized;
             transform.position = Vector2.MoveTowards((Vector2)transform.position, targetPosition, speed * Time.deltaTime);
@@ -186,38 +192,34 @@ Debug.Log(currentHealth + "/" + maxHealth);
             // Check if we have reached the target position
             if (Vector2.Distance((Vector2)transform.position, targetPosition) < 0.1f)
             {
-                isMoving = false;
-                move = Vector2.zero; // Reset move direction when not moving
+                isMovingToTarget = false;
+                move = Vector2.zero; // Reset move direction when not moving to a target
             }
         }
         else
         {
-            // Optionally handle keyboard input when not moving via mouse click
+            // Handle keyboard input when not moving to a target
             float horizontal = Input.GetAxis("Horizontal");
             float vertical = Input.GetAxis("Vertical");
+	   Vector2 position = transform.position;
+      position.x = position.x + speed * horizontal * Time.deltaTime;
+        position.y = position.y + speed * vertical * Time.deltaTime;
+       transform.position = position;
             move = new Vector2(horizontal, vertical);
  
             if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
             {
-                isMoving = true; // Allow movement via keyboard if input is detected
+                isMovingToTarget = false; // Ensure keyboard movement is not overridden by target movement
                 lookDirection.Set(move.x, move.y);
                 lookDirection.Normalize();
-            }
-            else
-            {
-                // If no input, ensure isMoving is false to stop any residual movement logic
-                isMoving = false;
             }
         }
  
-        // If moving via keyboard, update lookDirection
-        if (!isMoving || (isMoving && move.magnitude > 0.01f)) // Ensure lookDirection updates only when there's intentional movement
+        // Ensure lookDirection is updated correctly when moving via keyboard
+        if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
         {
-            if (!Mathf.Approximately(move.x, 0.0f) || !Mathf.Approximately(move.y, 0.0f))
-            {
-                lookDirection.Set(move.x, move.y);
-                lookDirection.Normalize();
-            }
+            lookDirection.Set(move.x, move.y);
+            lookDirection.Normalize();
         }
     }
  
